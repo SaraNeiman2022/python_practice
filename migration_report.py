@@ -1,11 +1,13 @@
 # 1. Run SQL
 # 2. Export data
 # 3. Zip the file
-
+# 4. upload zip file
 import pyodbc
 import pandas as pd
 from datetime import datetime
 from zipfile import ZipFile, ZIP_DEFLATED
+import os
+import paramiko
 
 timestamp = datetime.now().strftime("%Y%m")
 
@@ -64,6 +66,46 @@ def zip_exported_file():
     except Exception as e:
         print(e)
 
+def upload_zip(zip_file_path, host, username, password, remote_path):
+    """
+    Upload a ZIP file to an SFTP server.
+
+    Parameters:
+        zip_file_path (str): Local path of the ZIP file.
+        host (str): SFTP server hostname.
+        username (str): SFTP username.
+        password (str): SFTP password.
+        remote_path (str): Destination folder on SFTP server.
+    """
+
+    try:
+        transport = paramiko.Transport((host, 22))
+
+        transport.connect(
+            username=username,
+            password=password
+        )
+
+        sftp = paramiko.SFTPClient.from_transport(transport)
+
+        remote_file = remote_path + "/" + os.path.basename(zip_file_path)
+
+        sftp.put(zip_file_path, remote_file)
+
+        print("Upload success")
+
+        sftp.close()
+        transport.close()
+
+    except Exception as e:
+        print(f"Upload failed: {e}")
+
+
 run_sql_files()
 export_file()
 zip_exported_file()
+upload_zip( zip_file_path, 
+           "sftp2.melissadata.com", 
+           "Listdepartment",
+           "password",
+           "/ListDepartment/coxcommunications")
